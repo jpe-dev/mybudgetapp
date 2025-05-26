@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'models/recurring_expense.dart';
+import 'models/expense.dart';
 import 'services/storage_service.dart';
 
 // Liste des catégories prédéfinies
@@ -99,14 +100,199 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-class ExpensesPage extends StatelessWidget {
+class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Page des dépenses'),
+  State<ExpensesPage> createState() => _ExpensesPageState();
+}
+
+class _ExpensesPageState extends State<ExpensesPage> {
+  final List<Expense> _expenses = [];
+  final _formKey = GlobalKey<FormState>();
+  final _storageService = StorageService();
+  String _selectedCategory = expenseCategories[0];
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses();
+  }
+
+  Future<void> _loadExpenses() async {
+    print('Chargement des dépenses ponctuelles...');
+    final data = await _storageService.loadData(StorageService.oneTimeExpensesKey);
+    print('Données chargées: $data');
+    if (data != null) {
+      setState(() {
+        _expenses.clear();
+        _expenses.addAll(
+          (data as List).map((item) => Expense.fromJson(item)).toList(),
+        );
+      });
+      print('Nombre de dépenses chargées: ${_expenses.length}');
+    } else {
+      print('Aucune donnée trouvée');
+    }
+  }
+
+  Future<void> _saveExpenses() async {
+    print('Sauvegarde des dépenses ponctuelles...');
+    final dataToSave = _expenses.map((e) => e.toJson()).toList();
+    print('Données à sauvegarder: $dataToSave');
+    await _storageService.saveData(
+      StorageService.oneTimeExpensesKey,
+      dataToSave,
     );
+    print('Sauvegarde terminée');
+  }
+
+  void _addExpense() {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _expenses.add(
+          Expense(
+            category: _selectedCategory,
+            amount: double.parse(_amountController.text),
+            description: _descriptionController.text,
+            date: _selectedDate,
+          ),
+        );
+        _saveExpenses();
+        // Réinitialiser le formulaire
+        _amountController.clear();
+        _descriptionController.clear();
+        _selectedDate = DateTime.now();
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dépenses'),
+      ),
+      body: Column(
+        children: [
+          // Formulaire d'ajout
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    items: expenseCategories.map((String category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedCategory = newValue!;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Catégorie',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Montant',
+                      border: OutlineInputBorder(),
+                      prefixText: 'CHF ',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer un montant';
+                      }
+                      if (double.tryParse(value) == null) {
+                        return 'Veuillez entrer un nombre valide';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: const Text('Date'),
+                    subtitle: Text(
+                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    ),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () => _selectDate(context),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _addExpense,
+                    child: const Text('Ajouter la dépense'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Liste des dépenses
+          Expanded(
+            child: ListView.builder(
+              itemCount: _expenses.length,
+              itemBuilder: (context, index) {
+                final expense = _expenses[index];
+                return ListTile(
+                  title: Text(expense.category),
+                  subtitle: Text(
+                    '${expense.description}\n${expense.date.day}/${expense.date.month}/${expense.date.year}',
+                  ),
+                  trailing: Text(
+                    'CHF ${expense.amount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 }
 

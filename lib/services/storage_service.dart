@@ -4,6 +4,7 @@ import 'dart:html' as html;
 class StorageService {
   static const String budgetKey = 'budget_data';
   static const String expensesKey = 'expenses_data';
+  static const String oneTimeExpensesKey = 'one_time_expenses_data';
 
   // Sauvegarder des données
   Future<void> saveData(String key, dynamic data) async {
