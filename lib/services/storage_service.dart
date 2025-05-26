@@ -1,9 +1,9 @@
-import 'package:shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class StorageService {
-  static const String _budgetKey = 'budget_data';
-  static const String _expensesKey = 'expenses_data';
+  static const String budgetKey = 'budget_data';
+  static const String expensesKey = 'expenses_data';
 
   // Sauvegarder des données
   Future<void> saveData(String key, dynamic data) async {
