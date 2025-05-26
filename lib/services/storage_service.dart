@@ -1,5 +1,5 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:html' as html;
 
 class StorageService {
   static const String budgetKey = 'budget_data';
@@ -7,30 +7,59 @@ class StorageService {
 
   // Sauvegarder des données
   Future<void> saveData(String key, dynamic data) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String encodedData = json.encode(data);
-    await prefs.setString(key, encodedData);
+    try {
+      print('StorageService: Sauvegarde des données pour la clé $key');
+      final String encodedData = json.encode(data);
+      print('StorageService: Données encodées: $encodedData');
+      html.window.localStorage[key] = encodedData;
+      print('StorageService: Données sauvegardées avec succès');
+    } catch (e) {
+      print('StorageService: Erreur lors de la sauvegarde: $e');
+      rethrow;
+    }
   }
 
   // Charger des données
   Future<dynamic> loadData(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? data = prefs.getString(key);
-    if (data != null) {
-      return json.decode(data);
+    try {
+      print('StorageService: Chargement des données pour la clé $key');
+      final String? data = html.window.localStorage[key];
+      print('StorageService: Données brutes: $data');
+      if (data != null) {
+        final decodedData = json.decode(data);
+        print('StorageService: Données décodées: $decodedData');
+        return decodedData;
+      }
+      print('StorageService: Aucune donnée trouvée');
+      return null;
+    } catch (e) {
+      print('StorageService: Erreur lors du chargement: $e');
+      return null;
     }
-    return null;
   }
 
   // Supprimer des données
   Future<void> removeData(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(key);
+    try {
+      print('StorageService: Suppression des données pour la clé $key');
+      html.window.localStorage.remove(key);
+      print('StorageService: Données supprimées avec succès');
+    } catch (e) {
+      print('StorageService: Erreur lors de la suppression: $e');
+      rethrow;
+    }
   }
 
   // Vérifier si des données existent
   Future<bool> hasData(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(key);
+    try {
+      print('StorageService: Vérification de l\'existence des données pour la clé $key');
+      final exists = html.window.localStorage.containsKey(key);
+      print('StorageService: Données existent: $exists');
+      return exists;
+    } catch (e) {
+      print('StorageService: Erreur lors de la vérification: $e');
+      return false;
+    }
   }
 } 
