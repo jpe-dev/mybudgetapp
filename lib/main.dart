@@ -115,6 +115,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  int? _editingIndex;
 
   @override
   void initState() {
@@ -150,17 +151,69 @@ class _ExpensesPageState extends State<ExpensesPage> {
     print('Sauvegarde terminée');
   }
 
-  void _addExpense() {
+  void _startEditing(int index) {
+    final expense = _expenses[index];
+    setState(() {
+      _editingIndex = index;
+      _selectedCategory = expense.category;
+      _amountController.text = expense.amount.toString();
+      _descriptionController.text = expense.description;
+      _selectedDate = expense.date;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _editingIndex = null;
+      _amountController.clear();
+      _descriptionController.clear();
+      _selectedDate = DateTime.now();
+    });
+  }
+
+  void _deleteExpense(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la dépense'),
+        content: const Text('Êtes-vous sûr de vouloir supprimer cette dépense ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _expenses.removeAt(index);
+                _saveExpenses();
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addOrUpdateExpense() {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _expenses.add(
-          Expense(
-            category: _selectedCategory,
-            amount: double.parse(_amountController.text),
-            description: _descriptionController.text,
-            date: _selectedDate,
-          ),
+        final expense = Expense(
+          category: _selectedCategory,
+          amount: double.parse(_amountController.text),
+          description: _descriptionController.text,
+          date: _selectedDate,
         );
+
+        if (_editingIndex != null) {
+          _expenses[_editingIndex!] = expense;
+          _editingIndex = null;
+        } else {
+          _expenses.add(expense);
+        }
+
         _saveExpenses();
         // Réinitialiser le formulaire
         _amountController.clear();
@@ -192,7 +245,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       ),
       body: Column(
         children: [
-          // Formulaire d'ajout
+          // Formulaire d'ajout/modification
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -254,9 +307,22 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     onTap: () => _selectDate(context),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _addExpense,
-                    child: const Text('Ajouter la dépense'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      if (_editingIndex != null)
+                        ElevatedButton(
+                          onPressed: _cancelEditing,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                          ),
+                          child: const Text('Annuler'),
+                        ),
+                      ElevatedButton(
+                        onPressed: _addOrUpdateExpense,
+                        child: Text(_editingIndex != null ? 'Mettre à jour' : 'Ajouter la dépense'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -268,15 +334,31 @@ class _ExpensesPageState extends State<ExpensesPage> {
               itemCount: _expenses.length,
               itemBuilder: (context, index) {
                 final expense = _expenses[index];
-                return ListTile(
-                  title: Text(expense.category),
-                  subtitle: Text(
-                    '${expense.description}\n${expense.date.day}/${expense.date.month}/${expense.date.year}',
-                  ),
-                  trailing: Text(
-                    'CHF ${expense.amount.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    title: Text(expense.category),
+                    subtitle: Text(
+                      '${expense.description}\n${expense.date.day}/${expense.date.month}/${expense.date.year}',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'CHF ${expense.amount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _startEditing(index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deleteExpense(index),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -311,6 +393,7 @@ class _BudgetPageState extends State<BudgetPage> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   int _selectedDay = 1;
+  int? _editingIndex;
 
   @override
   void initState() {
@@ -346,17 +429,69 @@ class _BudgetPageState extends State<BudgetPage> {
     print('Sauvegarde terminée');
   }
 
-  void _addExpense() {
+  void _startEditing(int index) {
+    final expense = _expenses[index];
+    setState(() {
+      _editingIndex = index;
+      _selectedCategory = expense.category;
+      _amountController.text = expense.amount.toString();
+      _descriptionController.text = expense.description;
+      _selectedDay = expense.dayOfMonth;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _editingIndex = null;
+      _amountController.clear();
+      _descriptionController.clear();
+      _selectedDay = 1;
+    });
+  }
+
+  void _deleteExpense(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la dépense récurrente'),
+        content: const Text('Êtes-vous sûr de vouloir supprimer cette dépense récurrente ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _expenses.removeAt(index);
+                _saveExpenses();
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addOrUpdateExpense() {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _expenses.add(
-          RecurringExpense(
-            category: _selectedCategory,
-            amount: double.parse(_amountController.text),
-            dayOfMonth: _selectedDay,
-            description: _descriptionController.text,
-          ),
+        final expense = RecurringExpense(
+          category: _selectedCategory,
+          amount: double.parse(_amountController.text),
+          dayOfMonth: _selectedDay,
+          description: _descriptionController.text,
         );
+
+        if (_editingIndex != null) {
+          _expenses[_editingIndex!] = expense;
+          _editingIndex = null;
+        } else {
+          _expenses.add(expense);
+        }
+
         _saveExpenses();
         // Réinitialiser le formulaire
         _amountController.clear();
@@ -374,7 +509,7 @@ class _BudgetPageState extends State<BudgetPage> {
       ),
       body: Column(
         children: [
-          // Formulaire d'ajout
+          // Formulaire d'ajout/modification
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -448,9 +583,22 @@ class _BudgetPageState extends State<BudgetPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _addExpense,
-                    child: const Text('Ajouter la dépense'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      if (_editingIndex != null)
+                        ElevatedButton(
+                          onPressed: _cancelEditing,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                          ),
+                          child: const Text('Annuler'),
+                        ),
+                      ElevatedButton(
+                        onPressed: _addOrUpdateExpense,
+                        child: Text(_editingIndex != null ? 'Mettre à jour' : 'Ajouter la dépense'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -462,12 +610,28 @@ class _BudgetPageState extends State<BudgetPage> {
               itemCount: _expenses.length,
               itemBuilder: (context, index) {
                 final expense = _expenses[index];
-                return ListTile(
-                  title: Text(expense.category),
-                  subtitle: Text(expense.description),
-                  trailing: Text(
-                    'CHF ${expense.amount.toStringAsFixed(2)}\nJour ${expense.dayOfMonth}',
-                    textAlign: TextAlign.end,
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    title: Text(expense.category),
+                    subtitle: Text(expense.description),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'CHF ${expense.amount.toStringAsFixed(2)}\nJour ${expense.dayOfMonth}',
+                          textAlign: TextAlign.end,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _startEditing(index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deleteExpense(index),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
