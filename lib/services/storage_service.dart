@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   static const String budgetKey = 'budget_data';
@@ -12,7 +14,15 @@ class StorageService {
       print('StorageService: Sauvegarde des données pour la clé $key');
       final String encodedData = json.encode(data);
       print('StorageService: Données encodées: $encodedData');
-      html.window.localStorage[key] = encodedData;
+
+      if (kIsWeb) {
+        // Utiliser localStorage pour le web
+        html.window.localStorage[key] = encodedData;
+      } else {
+        // Utiliser SharedPreferences pour mobile
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(key, encodedData);
+      }
       print('StorageService: Données sauvegardées avec succès');
     } catch (e) {
       print('StorageService: Erreur lors de la sauvegarde: $e');
@@ -24,7 +34,17 @@ class StorageService {
   Future<dynamic> loadData(String key) async {
     try {
       print('StorageService: Chargement des données pour la clé $key');
-      final String? data = html.window.localStorage[key];
+      String? data;
+
+      if (kIsWeb) {
+        // Utiliser localStorage pour le web
+        data = html.window.localStorage[key];
+      } else {
+        // Utiliser SharedPreferences pour mobile
+        final prefs = await SharedPreferences.getInstance();
+        data = prefs.getString(key);
+      }
+
       print('StorageService: Données brutes: $data');
       if (data != null) {
         final decodedData = json.decode(data);
@@ -43,7 +63,14 @@ class StorageService {
   Future<void> removeData(String key) async {
     try {
       print('StorageService: Suppression des données pour la clé $key');
-      html.window.localStorage.remove(key);
+      if (kIsWeb) {
+        // Utiliser localStorage pour le web
+        html.window.localStorage.remove(key);
+      } else {
+        // Utiliser SharedPreferences pour mobile
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      }
       print('StorageService: Données supprimées avec succès');
     } catch (e) {
       print('StorageService: Erreur lors de la suppression: $e');
@@ -55,7 +82,17 @@ class StorageService {
   Future<bool> hasData(String key) async {
     try {
       print('StorageService: Vérification de l\'existence des données pour la clé $key');
-      final exists = html.window.localStorage.containsKey(key);
+      bool exists;
+
+      if (kIsWeb) {
+        // Utiliser localStorage pour le web
+        exists = html.window.localStorage.containsKey(key);
+      } else {
+        // Utiliser SharedPreferences pour mobile
+        final prefs = await SharedPreferences.getInstance();
+        exists = prefs.containsKey(key);
+      }
+
       print('StorageService: Données existent: $exists');
       return exists;
     } catch (e) {
