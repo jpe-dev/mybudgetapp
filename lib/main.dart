@@ -16,7 +16,8 @@ final List<String> expenseCategories = [
   'Autres'
 ];
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyBudgetApp());
 }
 
@@ -132,7 +133,9 @@ class _BudgetPageState extends State<BudgetPage> {
   }
 
   Future<void> _loadExpenses() async {
+    print('Chargement des dépenses...');
     final data = await _storageService.loadData(StorageService.expensesKey);
+    print('Données chargées: $data');
     if (data != null) {
       setState(() {
         _expenses.clear();
@@ -140,14 +143,21 @@ class _BudgetPageState extends State<BudgetPage> {
           (data as List).map((item) => RecurringExpense.fromJson(item)).toList(),
         );
       });
+      print('Nombre de dépenses chargées: ${_expenses.length}');
+    } else {
+      print('Aucune donnée trouvée');
     }
   }
 
   Future<void> _saveExpenses() async {
+    print('Sauvegarde des dépenses...');
+    final dataToSave = _expenses.map((e) => e.toJson()).toList();
+    print('Données à sauvegarder: $dataToSave');
     await _storageService.saveData(
       StorageService.expensesKey,
-      _expenses.map((e) => e.toJson()).toList(),
+      dataToSave,
     );
+    print('Sauvegarde terminée');
   }
 
   void _addExpense() {
