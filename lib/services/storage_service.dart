@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// Import conditionnel pour le web
+import 'dart:html' if (dart.library.io) 'dart:io' as platform;
 
 class StorageService {
   static const String budgetKey = 'budget_data';
@@ -17,7 +19,7 @@ class StorageService {
 
       if (kIsWeb) {
         // Utiliser localStorage pour le web
-        html.window.localStorage[key] = encodedData;
+        platform.window.localStorage[key] = encodedData;
       } else {
         // Utiliser SharedPreferences pour mobile
         final prefs = await SharedPreferences.getInstance();
@@ -38,7 +40,7 @@ class StorageService {
 
       if (kIsWeb) {
         // Utiliser localStorage pour le web
-        data = html.window.localStorage[key];
+        data = platform.window.localStorage[key];
       } else {
         // Utiliser SharedPreferences pour mobile
         final prefs = await SharedPreferences.getInstance();
@@ -65,7 +67,7 @@ class StorageService {
       print('StorageService: Suppression des données pour la clé $key');
       if (kIsWeb) {
         // Utiliser localStorage pour le web
-        html.window.localStorage.remove(key);
+        platform.window.localStorage.remove(key);
       } else {
         // Utiliser SharedPreferences pour mobile
         final prefs = await SharedPreferences.getInstance();
@@ -86,7 +88,7 @@ class StorageService {
 
       if (kIsWeb) {
         // Utiliser localStorage pour le web
-        exists = html.window.localStorage.containsKey(key);
+        exists = platform.window.localStorage.containsKey(key);
       } else {
         // Utiliser SharedPreferences pour mobile
         final prefs = await SharedPreferences.getInstance();
